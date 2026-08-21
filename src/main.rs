@@ -5,6 +5,7 @@ struct Chip8 {
     pc: u16,
     stack: [u16; 16],
     sp: u8,
+    display: [[bool; 64]; 32],
 }
 
 const FONTSET: [u8; 80] = [
@@ -26,6 +27,7 @@ impl Chip8 {
             pc: 0x200,
             stack: [0; 16],
             sp: 0,
+            display: [[false; 64]; 32],
         }
     }
 
@@ -46,7 +48,9 @@ impl Chip8 {
         self.pc += 2;
 
         match opcode {
-            0x00E0 => {}
+            0x00E0 => {
+                self.display = [[false; 64]; 32];
+            }
             _ => println!("{:#06X}", opcode),
         }
     }
