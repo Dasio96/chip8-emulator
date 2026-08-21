@@ -127,6 +127,30 @@ impl Chip8 {
                 self.registers[x] = self.registers[x].wrapping_add(nn);
             }
 
+            op if (op & 0xF00F) == 0x8000 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+                self.registers[x] = self.registers[y];
+            }
+
+            op if (op & 0xF00F) == 0x8001 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+                self.registers[x] |= self.registers[y];
+            }
+
+            op if (op & 0xF00F) == 0x8002 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+                self.registers[x] &= self.registers[y];
+            }
+
+            op if (op & 0xF00F) == 0x8003 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+                self.registers[x] ^= self.registers[y];
+            }
+
             _ => println!("{:#06X}", opcode),
         }
     }
