@@ -151,6 +151,24 @@ impl Chip8 {
                 self.registers[x] ^= self.registers[y];
             }
 
+            op if (op & 0xF00F) == 0x8004 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+
+                let (sum, overflow) = self.registers[x].overflowing_add(self.registers[y]);
+                self.registers[x] = sum;
+                self.registers[0xF] = if overflow { 1 } else { 0 };
+            }
+
+            op if (op & 0xF00F) == 0x8005 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+
+                let (diff, overflow) = self.registers[x].overflowing_sub(self.registers[y]);
+                self.registers[x] = diff;
+                self.registers[0xF] = if !overflow { 1 } else { 0 };
+            }
+
             _ => println!("{:#06X}", opcode),
         }
     }
