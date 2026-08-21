@@ -82,6 +82,23 @@ impl Chip8 {
                 self.sp -= 1;
                 self.pc = self.stack[self.sp as usize];
             }
+
+            op if (op & 0xF000) == 0x3000 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let nn = (op & 0x00FF) as u8;
+                if self.registers[x] == nn {
+                    self.pc += 2
+                }
+            }
+
+            op if (op & 0xF000) == 0x4000 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let nn = (op & 0x00FF) as u8;
+                if self.registers[x] != nn {
+                    self.pc += 2
+                }
+            }
+
             _ => println!("{:#06X}", opcode),
         }
     }
