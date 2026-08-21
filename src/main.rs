@@ -99,6 +99,22 @@ impl Chip8 {
                 }
             }
 
+            op if (op & 0xF00F) == 0x5000 => {
+                let x = ((op & 0xF00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+                if self.registers[x] == self.registers[y] {
+                    self.pc += 2;
+                }
+            }
+
+            op if (op & 0xF00F) == 0x9000 => {
+                let x = ((op & 0xF00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+                if self.registers[x] != self.registers[y] {
+                    self.pc += 2;
+                }
+            }
+
             _ => println!("{:#06X}", opcode),
         }
     }
