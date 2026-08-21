@@ -72,6 +72,16 @@ impl Chip8 {
                 self.i = op & 0x0FFF;
             }
 
+            op if (op & 0xF000) == 0x2000 => {
+                self.stack[self.sp as usize] = self.pc;
+                self.sp += 1;
+                self.pc = op & 0x0FFF;
+            }
+
+            0x00EE => {
+                self.sp -= 1;
+                self.pc = self.stack[self.sp as usize];
+            }
             _ => println!("{:#06X}", opcode),
         }
     }
