@@ -68,6 +68,10 @@ impl Chip8 {
                 self.registers[x] = self.registers[x].wrapping_add(nn);
             }
 
+            op if (op & 0xF000) == 0xA000 => {
+                self.i = op & 0x0FFF;
+            }
+
             _ => println!("{:#06X}", opcode),
         }
     }
