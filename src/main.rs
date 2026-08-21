@@ -7,6 +7,9 @@ struct Chip8 {
     sp: u8,
     display: [[bool; 64]; 32],
     rng_state: u32,
+    keys: [bool; 16],
+    delay_timer: u8,
+    sound_timer: u8,
 }
 
 const FONTSET: [u8; 80] = [
@@ -30,6 +33,9 @@ impl Chip8 {
             sp: 0,
             display: [[false; 64]; 32],
             rng_state: 1,
+            keys: [false; 16],
+            delay_timer: 0,
+            sound_timer: 0,
         }
     }
 
@@ -243,6 +249,65 @@ impl Chip8 {
                             self.display[y_line][x_line] ^= true;
                         }
                     }
+                }
+            }
+
+            op if (op & 0xF0FF) == 0xE09E => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let key = self.registers[x] as usize;
+                if key < 16 && self.keys[key] {
+                    self.pc += 2;
+                }
+            }
+
+            op if (op & 0xF0FF) == 0xE0A1 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let key = self.registers[x] as usize;
+                if key < 16 && !self.keys[key] {
+                    self.pc += 2;
+                }
+            }
+
+            op if (op & 0xF000) == 0xF000 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                match op & 0x00FF {
+                    0x07 => self.registers[x] = self.delay_timer,
+                    0x0A => {
+                        let mut pressed = false;
+                        for i in 0..16 {
+                            if self.keys[i] {
+                                self.registers[x] = i as u8;
+                                pressed = true;
+                                break;
+                            }
+                        }
+                        if !pressed {
+                            self.pc -= 2;
+                        }
+                    }
+                    0x15 => self.delay_timer = self.registers[x],
+                    0x18 => self.sound_timer = self.registers[x],
+                    0x1E => self.i = self.i.wrapping_add(self.registers[x] as u16),
+                    0x29 => {
+                        self.i = 0x050 + ((self.registers[x] as u16) * 5);
+                    }
+                    0x33 => {
+                        let val = self.registers[x];
+                        self.memory[self.i as usize] = val / 100;
+                        self.memory[(self.i + 1) as usize] = (val / 10) % 10;
+                        self.memory[(self.i + 2) as usize] = val % 10;
+                    }
+                    0x55 => {
+                        for i in 0..=x {
+                            self.memory[(self.i as usize) + i] = self.registers[i];
+                        }
+                    }
+                    0x65 => {
+                        for i in 0..=x {
+                            self.registers[i] = self.memory[(self.i as usize) + i];
+                        }
+                    }
+                    _ => println!("{:#06X}", op),
                 }
             }
 
