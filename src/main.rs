@@ -39,9 +39,24 @@ impl Chip8 {
 
         Ok(())
     }
+
+    pub fn cycle(&mut self) {
+        let opcode = ((self.memory[self.pc as usize] as u16) << 8)
+            | (self.memory[(self.pc + 1) as usize] as u16);
+        self.pc += 2;
+
+        match opcode {
+            0x00E0 => {}
+            _ => println!("{:#06X}", opcode),
+        }
+    }
 }
 
 fn main() {
     let mut chip8 = Chip8::new();
     let _ = chip8.load_rom("roms/Pong.ch8");
+
+    loop {
+        chip8.cycle();
+    }
 }
