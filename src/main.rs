@@ -20,7 +20,7 @@ impl Chip8 {
         let mut memory = [0; 4096];
         memory[0x050..0x050 + FONTSET.len()].copy_from_slice(&FONTSET);
         Chip8 {
-            memory: [0; 4096],
+            memory,
             registers: [0; 16],
             i: 0,
             pc: 0x200,
@@ -28,8 +28,20 @@ impl Chip8 {
             sp: 0,
         }
     }
+
+    pub fn load_rom(&mut self, path: &str) -> std::io::Result<()> {
+        let bytes = std::fs::read(path)?;
+
+        let start = 0x200;
+        let end = start + bytes.len();
+
+        self.memory[start..end].copy_from_slice(&bytes);
+
+        Ok(())
+    }
 }
 
 fn main() {
     let mut chip8 = Chip8::new();
+    let _ = chip8.load_rom("roms/Pong.ch8");
 }
