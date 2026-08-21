@@ -192,6 +192,24 @@ impl Chip8 {
                 self.registers[0xF] = msb;
             }
 
+            op if (op & 0xF00F) == 0x9000 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let y = ((op & 0x00F0) >> 4) as usize;
+                if self.registers[x] != self.registers[y] {
+                    self.pc += 2;
+                }
+            }
+
+            op if (op & 0xF000) == 0xA000 => {
+                let addr = op & 0x0FFF;
+                self.i = addr;
+            }
+
+            op if (op & 0xF000) == 0xB000 => {
+                let addr = op & 0x0FFF;
+                self.pc = addr + (self.registers[0] as u16);
+            }
+
             _ => println!("{:#06X}", opcode),
         }
     }
