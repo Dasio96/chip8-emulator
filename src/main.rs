@@ -1,3 +1,9 @@
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::pixels::Color;
+use sdl2::rect::Rect;
+use std::time::Duration;
+
 struct Chip8 {
     memory: [u8; 4096],
     registers: [u8; 16],
@@ -316,11 +322,105 @@ impl Chip8 {
     }
 }
 
-fn main() {
-    let mut chip8 = Chip8::new();
-    let _ = chip8.load_rom("roms/Pong.ch8");
-
-    loop {
-        chip8.cycle();
+fn map_key(keycode: Keycode) -> Option<usize> {
+    match keycode {
+        Keycode::Num1 => Some(0x1),
+        Keycode::Num2 => Some(0x2),
+        Keycode::Num3 => Some(0x3),
+        Keycode::Num4 => Some(0xC),
+        Keycode::Q => Some(0x4),
+        Keycode::W => Some(0x5),
+        Keycode::E => Some(0x6),
+        Keycode::R => Some(0xD),
+        Keycode::A => Some(0x7),
+        Keycode::S => Some(0x8),
+        Keycode::D => Some(0x9),
+        Keycode::F => Some(0xE),
+        Keycode::Z => Some(0xA),
+        Keycode::X => Some(0x0),
+        Keycode::C => Some(0xB),
+        Keycode::V => Some(0xF),
+        _ => None,
     }
+}
+
+fn main() -> Result<(), String> {
+    let mut chip8 = Chip8::new();
+    chip8.load_rom("roms/Pong.ch8").map_err(|e| e.to_string())?;
+
+    let sdl_context = sdl2::init()?;
+    let video_subsystem = sdl_context.video()?;
+
+    let scale = 10;
+    let window = video_subsystem
+        .window("CHIP-8", 64 * scale, 32 * scale)
+        .position_centered()
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    let mut canvas = window
+        .into_canvas()
+        .accelerated()
+        .build()
+        .map_err(|e| e.to_string())?;
+    let mut event_pump = sdl_context.event_pump()?;
+
+    'running: loop {
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit { .. }
+                | Event::KeyDown {
+                    keycode: Some(Keycode::Escape),
+                    ..
+                } => {
+                    break 'running;
+                }
+                Event::KeyDown {
+                    keycode: Some(k), ..
+                } => {
+                    if let Some(idx) = map_key(k) {
+                        chip8.keys[idx] = true;
+                    }
+                }
+                Event::KeyUp {
+                    keycode: Some(k), ..
+                } => {
+                    if let Some(idx) = map_key(k) {
+                        chip8.keys[idx] = false;
+                    }
+                }
+                _ => {}
+            }
+        }
+        for _ in 0..10 {
+            chip8.cycle();
+        }
+        if chip8.delay_timer > 0 {
+            chip8.delay_timer -= 1;
+        }
+        if chip8.sound_timer > 0 {
+            chip8.sound_timer -= 1;
+        }
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.clear();
+        canvas.set_draw_color(Color::RGB(255, 255, 255));
+        for y in 0..32 {
+            for x in 0..64 {
+                if chip8.display[y][x] {
+                    let rect = Rect::new(
+                        (x as i32) * (scale as i32),
+                        (y as i32) * (scale as i32),
+                        scale as u32,
+                        scale as u32,
+                    );
+                    canvas.fill_rect(rect)?;
+                }
+            }
+        }
+        canvas.present();
+
+        std::thread::sleep(Duration::from_millis(16));
+    }
+
+    Ok(())
 }
