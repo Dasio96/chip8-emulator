@@ -6,6 +6,7 @@ struct Chip8 {
     stack: [u16; 16],
     sp: u8,
     display: [[bool; 64]; 32],
+    rng_state: u32,
 }
 
 const FONTSET: [u8; 80] = [
@@ -28,6 +29,7 @@ impl Chip8 {
             stack: [0; 16],
             sp: 0,
             display: [[false; 64]; 32],
+            rng_state: 1,
         }
     }
 
@@ -208,6 +210,40 @@ impl Chip8 {
             op if (op & 0xF000) == 0xB000 => {
                 let addr = op & 0x0FFF;
                 self.pc = addr + (self.registers[0] as u16);
+            }
+
+            op if (op & 0xF000) == 0xC000 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let nn = (op & 0x00FF) as u8;
+                self.rng_state = self.rng_state.wrapping_mul(1103515245).wrapping_add(12345);
+                let rng = ((self.rng_state >> 16) & 0xFF) as u8;
+                self.registers[x] = rng & nn;
+            }
+
+            op if (op & 0xF000) == 0xD000 => {
+                let x_reg = ((op & 0x0F00) >> 8) as usize;
+                let y_reg = ((op & 0x00F0) >> 4) as usize;
+                let height = (op & 0x000F) as usize;
+                let x_coord = (self.registers[x_reg] as usize) % 64;
+                let y_coord = (self.registers[y_reg] as usize) % 32;
+                self.registers[0xF] = 0;
+
+                for row in 0..height {
+                    let y_line = (y_coord + row) % 32;
+                    let pixel_byte = self.memory[(self.i as usize + row) & 0xFFF];
+
+                    for col in 0..8 {
+                        let x_line = (x_coord + col) % 64;
+                        let pixel_bit = (pixel_byte & (0x80 >> col)) != 0;
+
+                        if pixel_bit {
+                            if self.display[y_line][x_line] {
+                                self.registers[0xF] = 1;
+                            }
+                            self.display[y_line][x_line] ^= true;
+                        }
+                    }
+                }
             }
 
             _ => println!("{:#06X}", opcode),
