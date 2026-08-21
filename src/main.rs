@@ -62,6 +62,12 @@ impl Chip8 {
                 self.registers[x] = nn;
             }
 
+            op if (op & 0xF000) == 0x7000 => {
+                let x = ((op & 0x0F00) >> 8) as usize;
+                let nn = (op & 0x00FF) as u8;
+                self.registers[x] = self.registers[x].wrapping_add(nn);
+            }
+
             _ => println!("{:#06X}", opcode),
         }
     }
